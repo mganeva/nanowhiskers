@@ -91,12 +91,12 @@ def get_kws3_detector():
     """
     Creates and returns KWS-3 detector
     detector dimensions: 90x90 mm
-    SDD: 9500 mm
+    SDD: 9300 mm (for SANS)
     """
     u0 = 45.7  # in mm
     v0 = 48.5  # in mm
     detector = ba.RectangularDetector(256, 90.0, 256, 90.0)
-    detector.setPerpendicularToDirectBeam(9500.0, u0, v0)
+    detector.setPerpendicularToDirectBeam(9300.0, u0, v0)
     return detector
 
 
@@ -373,9 +373,6 @@ def plot_sim_qspace(expdata, title, radius=150.0, d=1000.0, zmin=1.0e-09):
 
 
 if __name__ == '__main__':
-    # plot_2d_sum([ec_fname1, ec_fname2, ec_fname3], 100)
-    # plot_2d_raw(ec_fname3, 100000)
-    # plot_2d_reduced(s3278_fname1, 1.0e-06)
     plot_2d_reduced_qspace()
-    s3098_data = reduce(s3098_fname1, s3098_fname2)
-    plot_sim_qspace(s3098_data, 'S3098', 546.0, 1500.0)
+    # s3098_data = reduce(s3098_fname1, s3098_fname2)
+    # plot_sim_qspace(s3098_data, 'S3098', 546.0, 1500.0)
