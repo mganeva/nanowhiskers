@@ -45,20 +45,18 @@ def plot_2d_sum(fnames, zmax=100.0):
     plt.show()
 
 
-def get_kws3_detector():
+def get_kws3_detector(u0=45.3, v0=29.9):
     """
     Creates and returns KWS-3 detector
     detector dimensions: 90x90 mm
     SDD: 9300 mm (for SANS)
     """
-    u0 = 45.3  # in mm
-    v0 = 30.2  # in mm
     detector = ba.RectangularDetector(256, 90.0, 256, 90.0)
     detector.setPerpendicularToDirectBeam(1300.0, u0, v0)
     return detector
 
 
-def get_simulation(ai=0.56):
+def get_simulation(ai=0.56, u0=45.3, v0=29.9):
     """
     Returns a GISAXS simulation with beam and detector defined
     wavelength 12.8 angstrom
@@ -66,7 +64,7 @@ def get_simulation(ai=0.56):
     """
     simulation = ba.GISASSimulation()
     simulation.setBeamParameters(12.8*ba.angstrom, ai*ba.deg, 0.0*ba.deg)
-    simulation.setDetector(get_kws3_detector())
+    simulation.setDetector(get_kws3_detector(u0, v0))
     simulation.setDetectorResolutionFunction(ba.ResolutionFunction2DGaussian(5.0, 5.0))
     simulation.setBeamIntensity(1000)
     distr_1 = ba.DistributionGaussian(1.28*ba.nm, 0.1)
@@ -175,7 +173,7 @@ def plot_s3278_2d_roi():
 def plot_s3098_1deg(ai=1.2):
     fname = '00065{r}_00{s:02d}_p15749_SiO2,_Si,_Au,_Cu_SiO2,_Si,_Au,_Cu_HRD_standard.{ext}'
     runs = range(1)  # put 22 to view the all 22 files
-    simulation = get_simulation(ai=ai)
+    simulation = get_simulation(ai=ai, v0=30.2)
     result = simulation.result()
     axes_limits = ba.get_axes_limits(result, ba.AxesUnits.QSPACE)
     # ROI, nm^-1
@@ -269,8 +267,149 @@ def plot_s3098_1deg(ai=1.2):
         plt.show()
 
 
+def plot_calibration():
+    """
+    Plots Qz slice (degrees) for S3098 and S3087
+    """
+    fname_s3098 = "00065505_0000_p15749_S3098-1.2dgr-rot0dgr_HRD_standard.det"
+    fname_s3087 = "00065569_0000_p15749_S3087-1.2dgr-rot0dgr_HRD_standard.det"
+    data_s3098 = load_data(join(datapath, fname_s3098))
+    data_s3087 = load_data(join(datapath, fname_s3087))
+
+    ai_3087 = 0.57
+    ai_3098 = 0.50
+
+    simulation_3087 = get_simulation(ai=ai_3087, u0=45.2, v0=30.2)
+    simulation_3098 = get_simulation(ai=ai_3098, u0=45.4, v0=30.5)
+    hist_3098 = simulation_3098.result().histogram2d(ba.AxesUnits.DEGREES)
+    hist_3098.setContent(data_s3098)
+    hist_3087 = simulation_3087.result().histogram2d(ba.AxesUnits.DEGREES)
+    hist_3087.setContent(data_s3087)
+
+    zslice_3098 = hist_3098.projectionY(0.0)
+    zslice_3087 = hist_3087.projectionY(0.0)
+
+    plt.semilogy(zslice_3098.getBinCenters(), zslice_3098.getBinValues(), color='k', marker='o', markersize=5,
+                 linestyle='None', label="S3098")
+    plt.semilogy(zslice_3087.getBinCenters(), zslice_3087.getBinValues(), color='b', marker='s', markersize=5,
+                 linestyle='None', label="S3087")
+
+    plt.axvline(x=ai_3087, color='r', linestyle=':')
+    plt.axvline(x=ai_3098, color='r', linestyle='--')
+    plt.annotate(r'$\alpha_i={}^\circ$'.format(ai_3087), xy=(ai_3087, 1400), xytext=(0.9, 2500),
+                 fontsize=14, arrowprops=dict(facecolor='red', shrink=0.0, width=0.5, headwidth=4))
+    plt.annotate(r'$\alpha_i={}^\circ$'.format(ai_3098), xy=(ai_3098, 6900), xytext=(-0.1, 10000),
+                 fontsize=14, arrowprops=dict(facecolor='red', shrink=0.0, width=0.5, headwidth=4))
+    plt.xlabel(r'$\alpha_f$ ($^{\circ}$)')
+    plt.title(r"Slice along $\alpha_f$", fontsize=16)
+    plt.legend(loc='upper right', fontsize=14)
+    plt.show()
+
+
+def plot_3098_3087_2d():
+    fname_s3098 = "00065505_0000_p15749_S3098-1.2dgr-rot0dgr_HRD_standard.det"
+    fname_s3087 = "00065569_0000_p15749_S3087-1.2dgr-rot0dgr_HRD_standard.det"
+    data_s3098 = load_data(join(datapath, fname_s3098))
+    data_s3087 = load_data(join(datapath, fname_s3087))
+
+    # define ROI, nm^-1
+    xmin, ymin, xmax, ymax = -0.05, 0.05, 0.05, 0.25
+
+    ai_3087 = 0.57
+    ai_3098 = 0.50
+
+    simulation_3087 = get_simulation(ai=ai_3087, u0=45.2, v0=30.2)
+    simulation_3098 = get_simulation(ai=ai_3098, u0=45.4, v0=30.5)
+
+    hist_3098 = simulation_3098.result().histogram2d(ba.AxesUnits.QSPACE)
+    hist_3098.setContent(data_s3098)
+    hist_3087 = simulation_3087.result().histogram2d(ba.AxesUnits.QSPACE)
+    hist_3087.setContent(data_s3087)
+
+    qz_3087 = calc_q(ai_3087, a_Si)
+    qz_3098 = calc_q(ai_3098, a_Si)
+
+    plt.style.use('seaborn-talk')
+    grid = plt.GridSpec(2, 2, wspace=0.4, hspace=0.3)
+    # ===================
+    # ROI S3087
+    # ===================
+    plt.subplot(grid[0, 0])
+    plt.subplots_adjust(wspace=0.2, hspace=0.3)
+    h_3087 = hist_3087.crop(xmin, ymin, xmax, ymax)
+    im = plt.imshow(h_3087.array(),
+                    norm=matplotlib.colors.LogNorm(0.1, 1000),
+                    extent=[xmin, xmax, ymin, ymax],
+                    aspect='auto', cmap='jet')
+
+    cb = plt.colorbar(im)
+    plt.axvline(x=0.0, color='0.7', linestyle='--', linewidth=1)
+    plt.axhline(y=qz_3087, color='0.7', linestyle='--', linewidth=1)
+    # plt.ticklabel_format(style='sci', axis='y', scilimits=(0, 0))
+    plt.xlabel(r'$Q_y$ (nm$^{-1}$)')
+    plt.ylabel(r'$Q_z$ (nm$^{-1}$)')
+    plt.title(r"S3087")
+
+    # ===================
+    # ROI S3098
+    # ===================
+    plt.subplot(grid[0, 1])
+    plt.subplots_adjust(wspace=0.2, hspace=0.3)
+    h_3098 = hist_3098.crop(xmin, ymin, xmax, ymax)
+    im = plt.imshow(h_3098.array(),
+                    norm=matplotlib.colors.LogNorm(0.1, 1000),
+                    extent=[xmin, xmax, ymin, ymax],
+                    aspect='auto', cmap='jet')
+
+    cb = plt.colorbar(im)
+    plt.axvline(x=0.0, color='0.7', linestyle='--', linewidth=1)
+    plt.axhline(y=qz_3098, color='0.7', linestyle='--', linewidth=1)
+    # plt.ticklabel_format(style='sci', axis='y', scilimits=(0, 0))
+    plt.xlabel(r'$Q_y$ (nm$^{-1}$)')
+    plt.ylabel(r'$Q_z$ (nm$^{-1}$)')
+    plt.title(r"S3098")
+
+    # ===================
+    # qz slice
+    # ===================
+    plt.subplot(grid[1, 0])
+    plt.subplots_adjust(wspace=0.2, hspace=0.3)
+    zslice_3087 = hist_3087.projectionY(0.0)
+    zslice_3098 = hist_3098.projectionY(0.0)
+    plt.semilogy(zslice_3087.getBinCenters(), zslice_3087.getBinValues(), color='k', marker='o', markersize=5,
+                 linestyle='None', label='S3087')
+    plt.semilogy(zslice_3098.getBinCenters(), zslice_3098.getBinValues(), color='b', marker='s', markersize=5,
+                 linestyle='None', label='S3098')
+    plt.xlabel(r'$Q_z$ (nm$^{-1}$)')
+    # plt.ylim([0.8, 10])
+    # plt.xlim([0.15, 0.25])
+    plt.legend(loc='upper right', fontsize=14)
+    plt.title(r"Slice along $Q_z$")
+
+    # ===================
+    # qy slice
+    # ===================
+    plt.subplot(grid[1, 1])
+    plt.subplots_adjust(wspace=0.2, hspace=0.3)
+    yslice_3087 = hist_3087.projectionX(qz_3087)
+    yslice_3098 = hist_3098.projectionX(qz_3098)
+    plt.semilogy(yslice_3087.getBinCenters(), yslice_3087.getBinValues(), color='k', marker='o', markersize=5,
+                 linestyle='None', label=r'S3087, $Q_z={:.2f}$ '.format(qz_3087) + r'nm$^{-1}$')
+    plt.semilogy(yslice_3098.getBinCenters(), yslice_3098.getBinValues(), color='b', marker='s', markersize=5,
+                 linestyle='None', label=r'S3098, $Q_z={:.2f}$ '.format(qz_3098) + r'nm$^{-1}$')
+    plt.xlabel(r'$Q_y$ (nm$^{-1}$)')
+    plt.legend(loc='upper right', fontsize=14)
+    # plt.ylim([0.8, 10])
+    # plt.xlim([0.0, 0.2])
+    plt.title(r"Slice along $Q_y$")
+
+    plt.show()
+
+
 if __name__ == '__main__':
     # plot_s3278_2d()
     # plot_s3278_qz()
     # plot_s3278_2d_roi()
-    plot_s3098_1deg(0.57)
+    plot_s3098_1deg(0.57)   # seems to be most reasonable angle for the first run
+    # plot_calibration()
+    plot_3098_3087_2d()
