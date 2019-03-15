@@ -344,5 +344,7 @@ if __name__ == '__main__':
     # plot_large_mirror_raw()
     # plot_all_2d()
     # plot_all_1d()
+    plot_0deg_summary()
+    plot_45deg_summary()
+    plot_90deg_summary()
     plot_summary()
-    # plot_0deg_summary()
